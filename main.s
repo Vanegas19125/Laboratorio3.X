@@ -30,9 +30,14 @@
 ;configuration word 2
     CONFIG WRT=OFF	//Proteccion de autoescritura por el programa desactivada
     CONFIG BOR4V=BOR40V //Reinicio abajo de 4V, (BOR21v=2.1v)
-    PSECT var
+    
+    PSECT udata_bank0
 	CONTADOR: DS 1
 	DISPLAY: DS 1
+	DELAY: DS 1
+	PORTB_ANTERIOR: DS 1
+	PORTB_ACTUAL: DS 1
+    
     PSECT resVect, class=CODE, abs, delta=2
 ;*******************************************************************************
     BSF STATUS, 6 
@@ -63,16 +68,27 @@
     
     MOVLW 10
     MOVWF CONTADOR
+    
+    MOVLW 255
+    MOVWF  PORTB_ACTUAL
+    MOVWF  PORTB_ANTERIOR
 ;*******************************************************************************
     BCF INTCON, 2
 ;Loop General
 LOOP:
+    MOVF    PORTB_ACTUAL, W
+    MOVWF   PORTB_ANTERIOR
+    CALL    delay_small
+    MOVF    PORTB,W
+    MOVWF   PORTB_ACTUAL
     BTFSC INTCON, 2
     CALL INCCOUNT
-    BTFSS PORTB, 0 ;Boton incremento contador 1
+    BTFSS PORTB_ANTERIOR, 0 ;Boton incremento contador 1
     CALL INCREMENTOC
-    BTFSS PORTB, 1 ;Boton decremento contador 1
+    BTFSS PORTB_ANTERIOR, 1 ;Boton decremento contador 1
     CALL DECREMENTOC
+    CALL TRADUCCION
+    MOVWF PORTC
     GOTO LOOP
 ;Subrutinas
     
@@ -93,17 +109,17 @@ INCCOUNT:
     RETURN
     
  INCREMENTOC:
-    BTFSS PORTB, 0 ;Si se deja de presionar el boton incrementa contador 1
-    GOTO $-1
+    BTFSS  PORTB_ACTUAL, 0
+    RETURN
     INCF DISPLAY, F
     BTFSC DISPLAY, 4 ;Instruccion para no sobrepasar los 4 bits encendidos
     DECF DISPLAY, F
-    CALL TRADUCCION
     RETURN
     
  DECREMENTOC:
-    BTFSS PORTB, 1 ;Si se deja de presionar el boton decrementa el contador 1
-    GOTO $-1
+    BTFSS PORTB_ACTUAL, 1
+    RETURN
+    
     DECF DISPLAY, F ;decrementa puerto A
     INCFSZ DISPLAY, F ;Incrementa puerto A, si valor de F es 1
     DECF DISPLAY,F ;Decrementa puerto A y guarda valor en F
@@ -112,8 +128,8 @@ INCCOUNT:
  TRADUCCION:
     MOVF DISPLAY, W
     ANDLW 00001111B
-    ADDWF PCL, W
-    RETLW 01111110B ; 0
+    ADDWF PCL, F
+    RETLW 00111111B ; 0
     RETLW 00110000B ; 1
     RETLW 01101101B ; 2
     RETLW 01111001B ; 3
@@ -129,8 +145,13 @@ INCCOUNT:
     RETLW 00111101B ; D
     RETLW 01001111B ; E
     RETLW 01000111B ; F
-    RETURN
-    
+
+ delay_small:
+    movlw   167		    ;valor inicial del contador 
+    movwf   DELAY	    ;(valor-1)*3 uS + 2 uS = 500 us
+    decfsz  DELAY, F   ;decrementar el contador
+    goto    $-1		    ;ejecutar linea anterior
+    return	
  END
    
    
