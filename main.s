@@ -1,4 +1,4 @@
-;*******************************************************************************
+;-------------------------------------------------------------------------------
     ;Archivo:	  main.s
     ;Dispositivo: PIC16F887
     ;Autor: José Vanegas
@@ -9,13 +9,13 @@
     ;
     ;Creado: 16 feb, 2021
     ;Última modificación: 16 feb, 2021    
-;*******************************************************************************
+;-------------------------------------------------------------------------------
 
     PROCESSOR 16F887
     #include <xc.inc>
     
-    ;configuration word 1
-    CONFIG FOSC=INTRC_NOCLKOUT //Oscillador externo
+    
+    CONFIG FOSC=INTRC_NOCLKOUT //Oscillador interno
     CONFIG WDTE=OFF	//WDT disabled (reinicio repetitivo del pic)
     CONFIG PWRTE=ON	//PWRT enabled (espera de 72ms al iniciar)
     CONFIG MCLRE=OFF	//El pin de MCLR se utiliza como I/O
@@ -27,7 +27,7 @@
     CONFIG FCMEN=OFF	//Cambio de reloj externo a interno en caso de fallo
     CONFIG LVP=ON	//programacion en bajo voltaje permitida
     
-;configuration word 2
+
     CONFIG WRT=OFF	//Proteccion de autoescritura por el programa desactivada
     CONFIG BOR4V=BOR40V //Reinicio abajo de 4V, (BOR21v=2.1v)
     
@@ -39,7 +39,7 @@
 	PORTB_ACTUAL: DS 1
     
     PSECT resVect, class=CODE, abs, delta=2
-;*******************************************************************************
+;-------------------------------------------------------------------------------
     BSF STATUS, 6 
     BSF STATUS, 5 ; Banco 3
     CLRF ANSEL
@@ -72,9 +72,9 @@
     MOVLW 255
     MOVWF  PORTB_ACTUAL
     MOVWF  PORTB_ANTERIOR
-;*******************************************************************************
     BCF INTCON, 2
-;Loop General
+;---------------------------Loop General----------------------------------------
+    
 LOOP:
     MOVF    PORTB_ACTUAL, W
     MOVWF   PORTB_ANTERIOR
@@ -87,8 +87,11 @@ LOOP:
     CALL INCREMENTOC
     BTFSS PORTB_ANTERIOR, 1 ;Boton decremento contador 1
     CALL DECREMENTOC
+;-----------------Muestra el contador de botones en el display------------------
     CALL TRADUCCION
     MOVWF PORTC
+;------------------------------Comparacion -------------------------------------
+    
     GOTO LOOP
 ;Subrutinas
     
@@ -130,21 +133,21 @@ INCCOUNT:
     ANDLW 00001111B
     ADDWF PCL, F
     RETLW 00111111B ; 0
-    RETLW 00110000B ; 1
-    RETLW 01101101B ; 2
-    RETLW 01111001B ; 3
-    RETLW 00110011B ; 4
-    RETLW 01011011B ; 5
-    RETLW 01011111B ; 6
-    RETLW 01110000B ; 7
+    RETLW 00000110B ; 1
+    RETLW 01011011B ; 2
+    RETLW 01001111B ; 3
+    RETLW 01100110B ; 4
+    RETLW 01101101B ; 5
+    RETLW 01111101B ; 6
+    RETLW 00000111B ; 7
     RETLW 01111111B ; 8
-    RETLW 01111011B ; 9
+    RETLW 01101111B ; 9
     RETLW 01110111B ; A
-    RETLW 00011111B ; B
-    RETLW 01001110B ; C
-    RETLW 00111101B ; D
-    RETLW 01001111B ; E
-    RETLW 01000111B ; F
+    RETLW 01111100B ; B
+    RETLW 00111001B ; C
+    RETLW 01011110B ; D
+    RETLW 01111001B ; E
+    RETLW 01110001B ; F
 
  delay_small:
     movlw   167		    ;valor inicial del contador 
