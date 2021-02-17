@@ -2480,6 +2480,8 @@ ENDM
     CONFIG WRT=OFF
     CONFIG BOR4V=BOR40V
 
+
+
     PSECT udata_bank0
  CONTADOR: DS 1
  DISPLAY: DS 1
@@ -2497,28 +2499,28 @@ ENDM
     BCF STATUS, 6 ; Banco 1
     CLRF TRISA ; Puerto A como salida
     CLRF TRISC ; Puerto C como salida
-    CLRF TRISD
+    CLRF TRISD ; Puerto D como salida
 
     MOVLW 255
     MOVWF TRISB ; Puerto B Como entrada
 
-    BCF OPTION_REG, 7
-    BCF OPTION_REG, 5
-    BCF OPTION_REG, 3
-    BSF OPTION_REG, 2
+    BCF OPTION_REG, 7 ;Habilitamos los pull ups del puerto B
+    BCF OPTION_REG, 5 ;Bit 5 en 0 para usar internal instruction cycle clock
+    BCF OPTION_REG, 3 ;Bit 3 en 0 para asignarle un preescaler
+    BSF OPTION_REG, 2 ;Configuramos los bits 2, 1, 0 para un preescaler de 256
     BSF OPTION_REG, 1
     BSF OPTION_REG, 0
 
     BCF STATUS, 5; Banco 0
 
-    MOVLW 61
-    MOVWF TMR0
-    CLRF PORTA ;Poner en 0 el puerto
-    CLRF PORTC ;Poner en 0 el puerto
-    CLRF PORTD
+    MOVLW 61 ;Movemos el 61 a W
+    MOVWF TMR0 ;y ese valor lo movemos al TMR0, que es la resta de 256-N
+    CLRF PORTA ;Poner en 0 el puerto D
+    CLRF PORTC ;Poner en 0 el puerto D
+    CLRF PORTD ;Poner en 0 el puerto D
 
     MOVLW 10
-    MOVWF CONTADOR
+    MOVWF CONTADOR ;Asignamos un valor de 10 al contador del timer
 
     MOVLW 255
     MOVWF PORTB_ACTUAL
@@ -2531,17 +2533,20 @@ LOOP:
     MOVWF PORTB_ANTERIOR
     CALL delay_small
     MOVF PORTB,W
-    MOVWF PORTB_ACTUAL
+    MOVWF PORTB_ACTUAL ;implementacion del antirebote lineas 83-87
     BTFSC INTCON, 2
-    CALL INCCOUNT
-    BTFSS PORTB_ANTERIOR, 0 ;Boton incremento contador 1
+    CALL INCCOUNT ;Llamamos a la subrutina incremento contador timer
+    BTFSS PORTB_ANTERIOR, 0 ;Boton incremento hexadecimal
     CALL INCREMENTOC
-    BTFSS PORTB_ANTERIOR, 1 ;Boton decremento contador 1
+    BTFSS PORTB_ANTERIOR, 1 ;Boton decremento contador hexadecimal
     CALL DECREMENTOC
 ;-----------------Muestra el contador de botones en el display------------------
-    CALL TRADUCCION
-    MOVWF PORTC
+    CALL TRADUCCION ;Llamamos la sub traduccion para pasar el numero binari
+
+    MOVWF PORTC ;ese valor lo movemos al puerto C donde esta el display
 ;------------------------------Comparacion -------------------------------------
+    ;Realizamos la comparacion entre el contador del timer y el hexadecimal
+    ;para verificar si su valor es igual yy reiniciar el timer
     MOVF PORTA, W
     SUBWF DISPLAY, W
     BTFSC STATUS, 2
@@ -2550,12 +2555,12 @@ LOOP:
     CALL ALARMA
     GOTO LOOP
 ;Subrutinas
-ALARMA:
+ALARMA: ;Subrutina para encender el LED de alarma
     CLRF PORTA
     BCF PORTD,0
     RETURN
-INCCOUNT:
-    BCF INTCON, 2
+INCCOUNT: ;subrutina para decrementar el contador del timer hasta
+    BCF INTCON, 2 ;que su valor sea 0, significa que ya pasaron los 500 ms
     MOVLW 61
     MOVWF TMR0
     DECFSZ CONTADOR, F
@@ -2570,7 +2575,7 @@ INCCOUNT:
     CLRF PORTA
     RETURN
 
- INCREMENTOC:
+ INCREMENTOC: ;subrutina para incrementar el contador hexadecimal
     BTFSS PORTB_ACTUAL, 0
     RETURN
     INCF DISPLAY, F
@@ -2578,16 +2583,16 @@ INCCOUNT:
     DECF DISPLAY, F
     RETURN
 
- DECREMENTOC:
+ DECREMENTOC: ;subrutina para decrementar el contador hexadecimal
     BTFSS PORTB_ACTUAL, 1
     RETURN
-
     DECF DISPLAY, F ;decrementa puerto A
     INCFSZ DISPLAY, F ;Incrementa puerto A, si valor de F es 1
     DECF DISPLAY,F ;Decrementa puerto A y guarda valor en F
     RETURN
 
- TRADUCCION:
+ TRADUCCION: ;subrutina para traducir el valor binario del contador, a hexa-
+    ;decimal en el display
     MOVF DISPLAY, W
     ANDLW 00001111B
     ADDWF PCL, F
@@ -2608,7 +2613,7 @@ INCCOUNT:
     RETLW 01111001B ; E
     RETLW 01110001B ; F
 
- delay_small:
+ delay_small: ;subrutina para un pequeño delay en los antirebotes de los botones
     movlw 167 ;valor inicial del contador
     movwf DELAY ;(valor-1)*3 uS + 2 uS = 500 us
     decfsz DELAY, F ;decrementar el contador
