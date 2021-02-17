@@ -2497,6 +2497,7 @@ ENDM
     BCF STATUS, 6 ; Banco 1
     CLRF TRISA ; Puerto A como salida
     CLRF TRISC ; Puerto C como salida
+    CLRF TRISD
 
     MOVLW 255
     MOVWF TRISB ; Puerto B Como entrada
@@ -2514,6 +2515,7 @@ ENDM
     MOVWF TMR0
     CLRF PORTA ;Poner en 0 el puerto
     CLRF PORTC ;Poner en 0 el puerto
+    CLRF PORTD
 
     MOVLW 10
     MOVWF CONTADOR
@@ -2540,10 +2542,18 @@ LOOP:
     CALL TRADUCCION
     MOVWF PORTC
 ;------------------------------Comparacion -------------------------------------
-
+    MOVF PORTA, W
+    SUBWF DISPLAY, W
+    BTFSC STATUS, 2
+    BSF PORTD, 0
+    BTFSS STATUS, 0
+    CALL ALARMA
     GOTO LOOP
 ;Subrutinas
-
+ALARMA:
+    CLRF PORTA
+    BCF PORTD,0
+    RETURN
 INCCOUNT:
     BCF INTCON, 2
     MOVLW 61
