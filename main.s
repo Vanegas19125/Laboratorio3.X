@@ -63,11 +63,10 @@
     BSF OPTION_REG, 0
     
     BCF STATUS, 5; Banco 0
-    
     MOVLW 61	;Movemos el 61 a W
     MOVWF TMR0	;y ese valor lo movemos al TMR0, que es la resta de 256-N
-    CLRF PORTA ;Poner en 0 el puerto D
-    CLRF PORTC ;Poner en 0 el puerto D
+    CLRF PORTA ;Poner en 0 el puerto A
+    CLRF PORTC ;Poner en 0 el puerto C
     CLRF PORTD ;Poner en 0 el puerto D
     
     MOVLW 10
